@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace CRXDownloader
 {
@@ -25,9 +26,23 @@ namespace CRXDownloader
             string[] tokens = szPath.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
             int iLen = tokens.Length;
             string[] szExtensionID = tokens[tokens.Length - 1].Split(delimiter2, StringSplitOptions.None);
-            string szDownloadPath = "https://clients2.google.com/service/update2/crx?response=redirect&x=id%3D" + szExtensionID[0] + "%26uc";
+            string szInput = "";
+            string szVersion = "";
+            using (WebClient client = new WebClient())
+            {
+                szInput = client.DownloadString(szPath);
+            }
+            string pattern = @"version\W content=\W(.*?)\W /";
+            Match m = Regex.Match(szInput, pattern);
+            while (m.Success)
+            {
+                szVersion = m.Groups[1].Value;
+                m = m.NextMatch();
+            }
+            szVersion = szVersion.Replace('.', '_');
+            string szDownloadPath = "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=38.0&x=id%3D" + szExtensionID[0] + "%26installsource%3Dondemand%26uc";
             WebClient webClient = new WebClient();
-            string szFile = tokens[tokens.Length-2] + ".crx";
+            string szFile = tokens[tokens.Length-2] + "." +szVersion + ".crx";
             webClient.DownloadFile(szDownloadPath, szFile);
             MessageBox.Show("Download Completed.");
         }
